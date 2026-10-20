@@ -168,7 +168,6 @@ class WhatsAppGroupEngine:
             "info",
             f"Looking for target group '{group_name}'. Please ensure it is selected or visible.",
         )
-        # Try checking if already open in #main
         for _ in range(180):
             if self.stop_requested:
                 return False
@@ -181,6 +180,16 @@ class WhatsAppGroupEngine:
                         return True
             except Exception:
                 pass
+
+            # If not yet active in header, try clicking from chat list
+            try:
+                chat_item = page.locator(f"#pane-side span[title='{group_name}'], #pane-side span:has-text('{group_name}')").first
+                if chat_item.count() > 0 and chat_item.is_visible():
+                    chat_item.click()
+                    time.sleep(1.2)
+            except Exception:
+                pass
+
             time.sleep(1)
         self.log("error", f"Timed out waiting for group '{group_name}' to be open.")
         return False
@@ -215,6 +224,7 @@ class WhatsAppGroupEngine:
         # Try to find 'Add participant' or 'Add member' control
         add_selectors = [
             "span[data-icon='add-user']",
+            "div[role='button']:has(span[data-icon='add-user'])",
             "span[data-icon='community-add']",
             "div[role='button']:has-text('Add participant')",
             "div[role='button']:has-text('Add member')",
@@ -224,6 +234,8 @@ class WhatsAppGroupEngine:
             "button[aria-label*='Add member']",
             "div[role='button'][aria-label*='Add participant']",
             "div[role='button'][aria-label*='Add member']",
+            "div[role='button']:has-text('Add')",
+            "button:has-text('Add')",
         ]
 
         add_btn = None
@@ -332,15 +344,108 @@ class WhatsAppGroupEngine:
         return None, "timeout"
 
     @staticmethod
+    def _is_contact_checked(dialog):
+        """Check if any contact is selected in the dialog (chip, checked box, or action button visible)."""
+        try:
+            for sel in (
+                "span[data-icon='checkbox-checked']",
+                "div[aria-checked='true']",
+                "[data-icon*='checkbox-checked']",
+                "span[data-icon='wds-ic-checkbox-checked']",
+                "div[data-testid*='chip']",
+                "span[data-icon='x-alt']",
+            ):
+                loc = dialog.locator(sel).first
+                if loc.count() > 0 and loc.is_visible():
+                    return True
+            return WhatsAppGroupEngine._find_action_button(dialog) is not None
+        except Exception:
+            return False
+
+    def _select_contact(self, page, dialog, search_box, row):
+        """Ensure the contact's checkbox is checked using multiple fallback strategies."""
+        # 1. Try clicking any checkbox / icon element inside row
+        for sel in (
+            "span[data-icon*='checkbox']",
+            "div[role='checkbox']",
+            "input[type='checkbox']",
+            "div[aria-checked]",
+            "[data-testid*='checkbox']",
+            "svg[data-icon*='checkbox']",
+        ):
+            try:
+                cb = row.locator(sel).first
+                if cb.count() > 0 and cb.is_visible():
+                    cb.click()
+                    time.sleep(0.3)
+                    if self._is_contact_checked(dialog):
+                        return True
+            except Exception:
+                pass
+
+        # 2. Click the row at the left-side checkbox offset (x=25, y=height/2)
+        try:
+            box = row.bounding_box()
+            y_offset = (box["height"] / 2) if box else 25
+            row.click(position={"x": 25, "y": y_offset})
+            time.sleep(0.3)
+            if self._is_contact_checked(dialog):
+                return True
+        except Exception:
+            pass
+
+        # 3. Press Enter while focused on the search box (WhatsApp Web native selection)
+        if search_box:
+            try:
+                search_box.focus()
+                search_box.press("Enter")
+                time.sleep(0.3)
+                if self._is_contact_checked(dialog):
+                    return True
+            except Exception:
+                pass
+
+        # 4. Standard row click with force=True
+        try:
+            row.click(force=True)
+            time.sleep(0.3)
+            if self._is_contact_checked(dialog):
+                return True
+        except Exception:
+            pass
+
+        # 5. Keyboard ArrowDown + Enter
+        try:
+            page.keyboard.press("ArrowDown")
+            time.sleep(0.1)
+            page.keyboard.press("Enter")
+            time.sleep(0.3)
+            if self._is_contact_checked(dialog):
+                return True
+        except Exception:
+            pass
+
+        return False
+
+    @staticmethod
     def _find_action_button(dialog):
         """Find the green checkmark or submit button in the participant picker."""
         selectors = [
             "button:has(span[data-icon='checkmark-medium'])",
             "div[role='button']:has(span[data-icon='checkmark-medium'])",
+            "button:has(span[data-icon='checkmark'])",
+            "div[role='button']:has(span[data-icon='checkmark'])",
             "button:has(span[data-icon='check'])",
             "div[role='button']:has(span[data-icon='check'])",
             "span[data-icon='checkmark-medium']",
+            "span[data-icon='checkmark']",
             "span[data-icon='check']",
+            "span[data-icon='check-large']",
+            "span[data-icon='arrow-forward']",
+            "span[data-icon='forward']",
+            "span[data-icon='arrow-right']",
+            "span[data-icon*='check']",
+            "span[data-icon*='arrow']",
             "button[aria-label='Next']",
             "button[aria-label='Done']",
             "button[aria-label='Add']",
@@ -348,33 +453,47 @@ class WhatsAppGroupEngine:
             "div[role='button'][aria-label='Done']",
             "div[role='button'][aria-label='Add']",
             "button:has-text('Add')",
+            "div[role='button']:has-text('Add')",
         ]
         for sel in selectors:
-            candidate = dialog.locator(sel).first
             try:
+                candidate = dialog.locator(sel).first
                 if candidate.count() > 0 and candidate.is_visible() and not candidate.is_disabled():
                     return candidate
             except Exception:
                 continue
 
-        # Fallback regex inspection
-        candidates = dialog.locator("button, [role='button']")
-        for index in range(candidates.count() - 1, -1, -1):
-            candidate = candidates.nth(index)
-            try:
-                if not candidate.is_visible() or candidate.is_disabled():
-                    continue
-                label = " ".join(
-                    part for part in (
-                        candidate.inner_text().strip(),
-                        candidate.get_attribute("aria-label") or "",
-                        candidate.get_attribute("title") or "",
-                    ) if part
-                )
-                if re.search(r"\b(add|done|next)\b", label, re.I):
-                    return candidate
-            except Exception:
-                continue
+        # Dynamic JavaScript check for green action button or button with check/arrow icon
+        try:
+            btn_handle = dialog.evaluate_handle("""(d) => {
+                const buttons = Array.from(d.querySelectorAll('button, div[role="button"]'));
+                for (const btn of buttons) {
+                    if (!btn.offsetParent) continue;
+                    const style = window.getComputedStyle(btn);
+                    const bg = style.backgroundColor || '';
+                    if (bg.includes('168') || bg.includes('211') || bg.includes('132') || bg.includes('102') || bg.includes('#00a884')) {
+                        return btn;
+                    }
+                    const icon = btn.querySelector('[data-icon]');
+                    if (icon) {
+                        const iconName = (icon.getAttribute('data-icon') || '').toLowerCase();
+                        if (iconName.includes('check') || iconName.includes('arrow') || iconName.includes('done') || iconName.includes('next') || iconName.includes('forward')) {
+                            return btn;
+                        }
+                    }
+                    const label = (btn.getAttribute('aria-label') || btn.innerText || '').toLowerCase();
+                    if (/\\b(add|done|next|checkmark|submit)\\b/.test(label)) {
+                        return btn;
+                    }
+                }
+                return null;
+            }""")
+            as_element = btn_handle.as_element()
+            if as_element:
+                return as_element
+        except Exception:
+            pass
+
         return None
 
     def _add_one(self, page, contact, phone_digits):
@@ -414,13 +533,9 @@ class WhatsAppGroupEngine:
             self._clear_search_box(page, dialog)
             return "failed", "No selectable contact row appeared."
 
-        # Click the matched contact to select
-        try:
-            row.click()
-            time.sleep(0.4)
-        except Exception as ex:
-            self._clear_search_box(page, dialog)
-            return "failed", f"Failed clicking contact row: {ex}"
+        # Select the matched contact using multiple fallback strategies
+        self._select_contact(page, dialog, search, row)
+        time.sleep(0.5)
 
         # If confirm_callback provided, verify with operator
         if self.confirm_callback:
@@ -437,8 +552,14 @@ class WhatsAppGroupEngine:
             self._clear_search_box(page, dialog)
             return "failed", "Stopped before submission."
 
-        # Find green checkmark or submit button
-        action_btn = self._find_action_button(dialog)
+        # Find green checkmark or submit button (wait up to 2 seconds for it to appear)
+        action_btn = None
+        for _ in range(8):
+            action_btn = self._find_action_button(dialog)
+            if action_btn:
+                break
+            time.sleep(0.25)
+
         if not action_btn:
             self._clear_search_box(page, dialog)
             return "failed", "Could not locate Green checkmark/Add button in dialog."
@@ -467,7 +588,7 @@ class WhatsAppGroupEngine:
                             page.keyboard.press("Escape")
                         return "failed", "Privacy restriction - user cannot be added directly to groups."
 
-                    confirm_add = last_d.locator("button:has-text('Add'), [role='button']:has-text('Add')").first
+                    confirm_add = last_d.locator("button:has-text('Add'), [role='button']:has-text('Add'), button:has-text('Add member'), button:has-text('जोड़ें'), button:has-text('जोड़ें')").first
                     if confirm_add.count() > 0 and confirm_add.is_visible():
                         confirm_add.click()
                         time.sleep(1.0)
