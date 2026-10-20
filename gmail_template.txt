@@ -1,0 +1,10 @@
+Hello {name},
+
+We hope this email finds you well.
+This is an automated notification regarding your update ({note}).
+
+If you have any questions or need further assistance, simply reply directly to this email!
+
+Best regards,
+Operations Team
+

@@ -1,0 +1,5 @@
+playwright>=1.40.0
+customtkinter>=6.0.0
+darkdetect>=0.8.0
+fastapi>=0.110.0
+uvicorn>=0.28.0

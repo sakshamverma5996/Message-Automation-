@@ -1,0 +1,10 @@
+{
+  "min_delay_seconds": 8.0,
+  "max_delay_seconds": 18.0,
+  "default_country_code": "+91",
+  "browser_channel": "chrome",
+  "headless": false,
+  "user_data_dir": "./whatsapp_profile",
+  "batch_size": 25,
+  "batch_pause_seconds": 120
+}

@@ -1,0 +1,8 @@
+{
+  "sender_email": "",
+  "sender_name": "Operations Team",
+  "subject": "Important Notification for {name}",
+  "min_delay_seconds": 3,
+  "max_delay_seconds": 8
+}
+

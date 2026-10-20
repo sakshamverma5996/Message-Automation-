@@ -1,0 +1,7 @@
+{
+  "group_name": "IIT BOMBAY (TECKFEST) KANPUR ZONALS",
+  "default_country_code": "+91",
+  "browser_channel": "msedge",
+  "headless": false,
+  "user_data_dir": "./whatsapp_profile"
+}

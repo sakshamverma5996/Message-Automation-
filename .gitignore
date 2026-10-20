@@ -1,0 +1,14 @@
+# Python virtual environment
+venv/
+.venv/
+
+# WhatsApp session data (private login cookies & tokens)
+whatsapp_profile/
+
+# Output reports
+results.csv
+
+# Python caches
+__pycache__/
+*.py[cod]
+

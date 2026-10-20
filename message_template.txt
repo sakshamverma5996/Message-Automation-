@@ -1,0 +1,7 @@
+Hello {name},
+
+This is an automated notification regarding your update ({note}).
+Please let us know if you have any questions!
+
+Best regards,
+Saksham Verma 

@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp Bulk Automation Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #0f172a;
+      color: #f8fafc;
+    }
+    .wa-green { background-color: #25D366; }
+    .wa-green-hover:hover { background-color: #20bd5a; }
+    .wa-dark { background-color: #075E54; }
+    .wa-chat-bg {
+      background-color: #e5ddd5;
+      background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+    .chat-bubble {
+      background-color: #dcf8c6;
+      color: #111827;
+      border-radius: 8px 0px 8px 8px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #1e293b; }
+    ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- TOP NAVBAR -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50 px-6 py-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xl shadow-lg shadow-emerald-500/10">
+          <i class="fa-brands fa-whatsapp"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold text-white flex items-center gap-2">
+            WhatsApp Bulk Campaign Hub
+            <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30">Free Edition</span>
+          </h1>
+          <p class="text-xs text-slate-400">Zero API Key • Persistent Web Session • Anti-Ban Safe</p>
+        </div>
+      </div>
+
+      <!-- STATUS BADGE -->
+      <div class="flex items-center space-x-4">
+        <div id="statusBadge" class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/80 text-xs font-semibold text-slate-300">
+          <span class="w-2.5 h-2.5 rounded-full bg-slate-400 animate-pulse" id="statusDot"></span>
+          <span id="statusText">IDLE</span>
+        </div>
+        <button onclick="downloadResults()" class="text-xs px-3 py-1.5 rounded-lg border border-slate-700 hover:border-slate-600 bg-slate-800 text-slate-300 hover:text-white transition flex items-center gap-1.5">
+          <i class="fa-solid fa-download"></i> Download Report
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-7xl mx-auto w-full p-6 flex-1 space-y-6">
+
+    <!-- METRICS CARDS -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-slate-800/50 border border-slate-700/60 rounded-xl p-4 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-400">Total Contacts</p>
+          <h3 id="statTotal" class="text-2xl font-bold text-white mt-1">0</h3>
+        </div>
+        <div class="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center text-lg">
+          <i class="fa-solid fa-users"></i>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/50 border border-slate-700/60 rounded-xl p-4 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-400">Sent Successfully</p>
+          <h3 id="statSent" class="text-2xl font-bold text-emerald-400 mt-1">0</h3>
+        </div>
+        <div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/50 border border-slate-700/60 rounded-xl p-4 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-400">Failed / Skipped</p>
+          <h3 id="statFailed" class="text-2xl font-bold text-rose-400 mt-1">0</h3>
+        </div>
+        <div class="w-10 h-10 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center text-lg">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/50 border border-slate-700/60 rounded-xl p-4 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-400">Campaign Progress</p>
+          <h3 id="statProgress" class="text-2xl font-bold text-indigo-400 mt-1">0%</h3>
+        </div>
+        <div class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-lg">
+          <i class="fa-solid fa-chart-pie"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN TWO COLUMN GRID -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- LEFT COLUMN: MESSAGE COMPOSER & CONTACTS (7 cols) -->
+      <div class="lg:col-span-7 space-y-6">
+
+        <!-- 1. MESSAGE BOX COMPOSER -->
+        <div class="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-5 shadow-xl">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs font-bold">1</span>
+              <h2 class="font-semibold text-white">Draft Your Message</h2>
+            </div>
+            <span class="text-xs text-slate-400" id="charCount">0 characters</span>
+          </div>
+
+          <!-- Quick Variable Chips -->
+          <div class="mb-3 flex flex-wrap items-center gap-2 bg-slate-900/60 p-2.5 rounded-xl border border-slate-700/50 text-xs">
+            <span class="text-slate-400 font-medium mr-1"><i class="fa-solid fa-tag text-emerald-400"></i> Insert Tag:</span>
+            <button onclick="insertTag('{name}')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-700 transition">
+              + {name}
+            </button>
+            <button onclick="insertTag('{phone}')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-700 transition">
+              + {phone}
+            </button>
+            <button onclick="insertTag('{note}')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-700 transition">
+              + {note}
+            </button>
+          </div>
+
+          <!-- Message Textarea -->
+          <div class="relative">
+            <textarea id="messageBox" rows="6" oninput="updatePreview()" placeholder="Type your WhatsApp message here... e.g. Hello {name}, your reminder for {note} is ready!"
+              class="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition resize-none"></textarea>
+          </div>
+
+          <div class="mt-3 flex justify-between items-center text-xs text-slate-400">
+            <span>Tags in curly brackets <code>{name}</code> will be replaced automatically per contact.</span>
+            <button onclick="saveMessageTemplate()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition flex items-center gap-1">
+              <i class="fa-solid fa-floppy-disk"></i> Save Template
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. CONTACTS MANAGER -->
+        <div class="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-5 shadow-xl">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs font-bold">2</span>
+              <h2 class="font-semibold text-white">Target Contacts</h2>
+            </div>
+            <!-- Tabs -->
+            <div class="flex bg-slate-900 p-1 rounded-lg border border-slate-700 text-xs">
+              <button id="tabPasteBtn" onclick="switchContactTab('paste')" class="px-3 py-1 rounded bg-emerald-600 text-white font-medium transition">Quick Paste</button>
+              <button id="tabUploadBtn" onclick="switchContactTab('upload')" class="px-3 py-1 rounded text-slate-400 hover:text-white transition">CSV File</button>
+            </div>
+          </div>
+
+          <!-- Tab Content: Quick Paste -->
+          <div id="tabPaste" class="space-y-3">
+            <textarea id="contactsTextarea" rows="4" placeholder="Enter one contact per line in format: Phone, Name, Note&#10;Examples:&#10;+919876543210, Rahul, VIP Client&#10;9811122233, Priya, Follow up"
+              class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition font-mono"></textarea>
+            <button onclick="parsePastedContacts()" class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-medium transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-list-check"></i> Parse & Load Numbers into List
+            </button>
+          </div>
+
+          <!-- Tab Content: Upload CSV -->
+          <div id="tabUpload" class="hidden space-y-3">
+            <div class="border-2 border-dashed border-slate-700 hover:border-emerald-500/50 rounded-xl p-6 text-center cursor-pointer transition bg-slate-900/50" onclick="document.getElementById('csvFileInput').click()">
+              <input type="file" id="csvFileInput" accept=".csv" class="hidden" onchange="handleCsvUpload(event)">
+              <i class="fa-solid fa-file-csv text-3xl text-emerald-400 mb-2"></i>
+              <p class="text-xs text-white font-medium">Click to upload your contacts CSV</p>
+              <p class="text-[10px] text-slate-400 mt-1">Columns: phone, name, note</p>
+            </div>
+          </div>
+
+          <!-- Contact Preview Table -->
+          <div class="mt-4 border border-slate-700/60 rounded-xl overflow-hidden bg-slate-900/60">
+            <div class="p-3 bg-slate-800/80 flex justify-between items-center text-xs font-semibold text-slate-300">
+              <span>Loaded Contacts (<span id="contactCountBadge">0</span>)</span>
+              <button onclick="clearContacts()" class="text-rose-400 hover:text-rose-300 text-[11px]">Clear All</button>
+            </div>
+            <div class="max-h-40 overflow-y-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="text-slate-400 border-b border-slate-800 bg-slate-900 sticky top-0">
+                  <tr>
+                    <th class="p-2.5">Phone</th>
+                    <th class="p-2.5">Name</th>
+                    <th class="p-2.5">Note</th>
+                    <th class="p-2.5 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="contactsTableBody" class="divide-y divide-slate-800 text-slate-300">
+                  <tr><td colspan="4" class="p-4 text-center text-slate-500">No contacts loaded yet</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT COLUMN: PREVIEW, SETTINGS & CONTROLS (5 cols) -->
+      <div class="lg:col-span-5 space-y-6">
+
+        <!-- 3. LIVE WHATSAPP CHAT PREVIEW -->
+        <div class="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-5 shadow-xl">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+              <i class="fa-solid fa-eye text-emerald-400"></i> WhatsApp Message Preview
+            </h3>
+            <span class="text-[11px] text-slate-400">Sample recipient: Rahul</span>
+          </div>
+          
+          <!-- Mock Phone Chat Screen -->
+          <div class="wa-chat-bg rounded-xl p-4 min-h-[160px] flex flex-col justify-end border border-slate-600/40">
+            <div class="chat-bubble p-3 max-w-[85%] self-end">
+              <p id="previewText" class="text-xs text-slate-900 whitespace-pre-wrap">Hello Rahul, preview will appear here...</p>
+              <div class="text-[9px] text-slate-500 text-right mt-1 flex items-center justify-end gap-1">
+                <span>12:00 PM</span>
+                <i class="fa-solid fa-check-double text-blue-500"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. ANTI-BAN TIMING SETTINGS -->
+        <div class="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-5 shadow-xl space-y-3">
+          <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+            <i class="fa-solid fa-shield-halved text-emerald-400"></i> Anti-Ban Safety Controls
+          </h3>
+
+          <div class="grid grid-cols-2 gap-3 text-xs">
+            <div>
+              <label class="block text-slate-400 mb-1">Min Delay (sec)</label>
+              <input type="number" id="cfgMinDelay" value="10" min="5" max="60" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white">
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Max Delay (sec)</label>
+              <input type="number" id="cfgMaxDelay" value="22" min="10" max="120" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 text-xs">
+            <div>
+              <label class="block text-slate-400 mb-1">Default Country Code</label>
+              <input type="text" id="cfgCountryCode" value="+91" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white">
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Browser Engine</label>
+              <select id="cfgBrowser" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white">
+                <option value="msedge">Microsoft Edge</option>
+                <option value="chrome">Google Chrome</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. LAUNCH CONTROLS -->
+        <div class="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-5 shadow-xl space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Campaign Controller</h3>
+            <span id="currentContactBadge" class="text-xs text-slate-400 truncate max-w-[200px]"></span>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="w-full bg-slate-900 rounded-full h-3 overflow-hidden border border-slate-700">
+            <div id="progressBar" class="bg-emerald-500 h-full w-0 transition-all duration-300"></div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <button id="btnStart" onclick="startCampaign()" class="w-full py-3 px-4 rounded-xl wa-green wa-green-hover text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-paper-plane"></i> Start Campaign
+            </button>
+            <button id="btnStop" onclick="stopCampaign()" disabled class="w-full py-3 px-4 rounded-xl bg-slate-700 text-slate-400 font-bold text-sm transition cursor-not-allowed flex items-center justify-center gap-2">
+              <i class="fa-solid fa-stop"></i> Stop
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- LIVE REAL-TIME CONSOLE / LOGS -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2 text-xs font-semibold text-slate-300">
+          <i class="fa-solid fa-terminal text-emerald-400"></i>
+          <span>Live Execution Console</span>
+        </div>
+        <button onclick="clearConsole()" class="text-xs text-slate-500 hover:text-slate-300">Clear</button>
+      </div>
+
+      <div id="consoleLogs" class="bg-slate-950 border border-slate-800/80 rounded-xl p-4 h-48 overflow-y-auto font-mono text-xs space-y-1.5 text-slate-300">
+        <div class="text-slate-500">Ready. Click 'Start Campaign' to begin...</div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    let contactsList = [];
+    let isPolling = false;
+
+    // Load initial data on page load
+    window.onload = async () => {
+      await loadInitialData();
+      startPolling();
+    };
+
+    async function loadInitialData() {
+      try {
+        const res = await fetch('/api/data');
+        const data = await res.json();
+        
+        if (data.template) {
+          document.getElementById('messageBox').value = data.template;
+          updatePreview();
+        }
+        if (data.contacts && Array.isArray(data.contacts)) {
+          contactsList = data.contacts;
+          renderContactsTable();
+        }
+        if (data.config) {
+          if (data.config.min_delay_seconds) document.getElementById('cfgMinDelay').value = data.config.min_delay_seconds;
+          if (data.config.max_delay_seconds) document.getElementById('cfgMaxDelay').value = data.config.max_delay_seconds;
+          if (data.config.default_country_code) document.getElementById('cfgCountryCode').value = data.config.default_country_code;
+          if (data.config.browser_channel) document.getElementById('cfgBrowser').value = data.config.browser_channel;
+        }
+      } catch (err) {
+        console.error("Failed to load initial data", err);
+      }
+    }
+
+    function insertTag(tag) {
+      const box = document.getElementById('messageBox');
+      const start = box.selectionStart;
+      const end = box.selectionEnd;
+      const text = box.value;
+      box.value = text.substring(0, start) + tag + text.substring(end);
+      box.focus();
+      box.selectionStart = box.selectionEnd = start + tag.length;
+      updatePreview();
+    }
+
+    function updatePreview() {
+      const text = document.getElementById('messageBox').value;
+      document.getElementById('charCount').innerText = `${text.length} characters`;
+      let preview = text
+        .replace(/\{name\}/gi, 'Rahul')
+        .replace(/\{phone\}/gi, '+919876543210')
+        .replace(/\{note\}/gi, 'VIP Client');
+      document.getElementById('previewText').innerText = preview || 'Type in the message box to see the preview...';
+    }
+
+    async function saveMessageTemplate() {
+      const text = document.getElementById('messageBox').value;
+      await fetch('/api/message/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ template: text })
+      });
+      alert('Template saved successfully!');
+    }
+
+    function switchContactTab(tab) {
+      if (tab === 'paste') {
+        document.getElementById('tabPaste').classList.remove('hidden');
+        document.getElementById('tabUpload').classList.add('hidden');
+        document.getElementById('tabPasteBtn').className = "px-3 py-1 rounded bg-emerald-600 text-white font-medium transition";
+        document.getElementById('tabUploadBtn').className = "px-3 py-1 rounded text-slate-400 hover:text-white transition";
+      } else {
+        document.getElementById('tabUpload').classList.remove('hidden');
+        document.getElementById('tabPaste').classList.add('hidden');
+        document.getElementById('tabUploadBtn').className = "px-3 py-1 rounded bg-emerald-600 text-white font-medium transition";
+        document.getElementById('tabPasteBtn').className = "px-3 py-1 rounded text-slate-400 hover:text-white transition";
+      }
+    }
+
+    function parsePastedContacts() {
+      const raw = document.getElementById('contactsTextarea').value.trim();
+      if (!raw) return alert('Please paste phone numbers first!');
+      const lines = raw.split('\n');
+      for (const line of lines) {
+        const parts = line.split(',').map(s => s.trim());
+        if (parts[0]) {
+          contactsList.push({
+            phone: parts[0],
+            name: parts[1] || 'Friend',
+            note: parts[2] || ''
+          });
+        }
+      }
+      document.getElementById('contactsTextarea').value = '';
+      renderContactsTable();
+      saveContactsToServer();
+    }
+
+    function handleCsvUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const text = e.target.result;
+        const rows = text.split('\n');
+        if (rows.length < 2) return alert('CSV is empty or invalid');
+        const headers = rows[0].split(',').map(h => h.trim().toLowerCase());
+        const phoneIdx = headers.findIndex(h => h.includes('phone') || h.includes('mobile'));
+        const nameIdx = headers.findIndex(h => h.includes('name'));
+        const noteIdx = headers.findIndex(h => h.includes('note') || h.includes('detail'));
+
+        if (phoneIdx === -1) return alert('CSV must contain a "phone" column header!');
+
+        for (let i = 1; i < rows.length; i++) {
+          const cols = rows[i].split(',').map(c => c.trim());
+          if (cols[phoneIdx]) {
+            contactsList.push({
+              phone: cols[phoneIdx],
+              name: (nameIdx !== -1 && cols[nameIdx]) ? cols[nameIdx] : 'Friend',
+              note: (noteIdx !== -1 && cols[noteIdx]) ? cols[noteIdx] : ''
+            });
+          }
+        }
+        renderContactsTable();
+        saveContactsToServer();
+      };
+      reader.readAsText(file);
+    }
+
+    function renderContactsTable() {
+      const tbody = document.getElementById('contactsTableBody');
+      document.getElementById('contactCountBadge').innerText = contactsList.length;
+      document.getElementById('statTotal').innerText = contactsList.length;
+
+      if (contactsList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-500">No contacts loaded yet</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = contactsList.map((c, i) => `
+        <tr class="hover:bg-slate-800/40 transition">
+          <td class="p-2.5 font-mono text-emerald-400">${c.phone}</td>
+          <td class="p-2.5">${c.name || '-'}</td>
+          <td class="p-2.5 text-slate-400">${c.note || '-'}</td>
+          <td class="p-2.5 text-right">
+            <button onclick="removeContact(${i})" class="text-slate-500 hover:text-rose-400"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function removeContact(index) {
+      contactsList.splice(index, 1);
+      renderContactsTable();
+      saveContactsToServer();
+    }
+
+    function clearContacts() {
+      if (confirm('Clear all contacts?')) {
+        contactsList = [];
+        renderContactsTable();
+        saveContactsToServer();
+      }
+    }
+
+    async function saveContactsToServer() {
+      await fetch('/api/contacts/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contacts: contactsList })
+      });
+    }
+
+    async function startCampaign() {
+      const message = document.getElementById('messageBox').value.trim();
+      if (!message) return alert('Please enter a message to send!');
+      if (contactsList.length === 0) return alert('Please add at least one contact!');
+
+      if (!confirm(`Are you ready to send this campaign to ${contactsList.length} contacts?`)) return;
+
+      const payload = {
+        message: message,
+        contacts: contactsList,
+        config: {
+          min_delay_seconds: parseFloat(document.getElementById('cfgMinDelay').value) || 10,
+          max_delay_seconds: parseFloat(document.getElementById('cfgMaxDelay').value) || 22,
+          default_country_code: document.getElementById('cfgCountryCode').value || '+91',
+          browser_channel: document.getElementById('cfgBrowser').value || 'msedge',
+          headless: false,
+          user_data_dir: './whatsapp_profile'
+        }
+      };
+
+      const res = await fetch('/api/campaign/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!data.success) {
+        alert(data.message);
+      }
+    }
+
+    async function stopCampaign() {
+      await fetch('/api/campaign/stop', { method: 'POST' });
+    }
+
+    function startPolling() {
+      if (isPolling) return;
+      isPolling = true;
+
+      setInterval(async () => {
+        try {
+          const res = await fetch('/api/campaign/state');
+          const state = await res.json();
+          updateUI(state);
+        } catch (e) {}
+      }, 1200);
+    }
+
+    function updateUI(state) {
+      // Badges
+      const statusText = document.getElementById('statusText');
+      const statusDot = document.getElementById('statusDot');
+      statusText.innerText = state.state.toUpperCase().replace('_', ' ');
+
+      if (state.state === 'running' || state.state === 'waiting_for_login') {
+        statusDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping";
+        document.getElementById('btnStart').disabled = true;
+        document.getElementById('btnStart').className = "w-full py-3 px-4 rounded-xl bg-slate-700 text-slate-500 font-bold text-sm cursor-not-allowed";
+        document.getElementById('btnStop').disabled = false;
+        document.getElementById('btnStop').className = "w-full py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm shadow-lg shadow-rose-500/20 cursor-pointer";
+      } else {
+        statusDot.className = "w-2.5 h-2.5 rounded-full bg-slate-400";
+        document.getElementById('btnStart').disabled = false;
+        document.getElementById('btnStart').className = "w-full py-3 px-4 rounded-xl wa-green wa-green-hover text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20";
+        document.getElementById('btnStop').disabled = true;
+        document.getElementById('btnStop').className = "w-full py-3 px-4 rounded-xl bg-slate-700 text-slate-400 font-bold text-sm cursor-not-allowed";
+      }
+
+      // Stats
+      if (state.total > 0) document.getElementById('statTotal').innerText = state.total;
+      document.getElementById('statSent').innerText = state.sent;
+      document.getElementById('statFailed').innerText = state.failed;
+      document.getElementById('statProgress').innerText = `${state.progress_percent}%`;
+      document.getElementById('progressBar').style.width = `${state.progress_percent}%`;
+      document.getElementById('currentContactBadge').innerText = state.current_contact ? `Target: ${state.current_contact}` : '';
+
+      // Logs
+      if (state.logs && state.logs.length > 0) {
+        const consoleBox = document.getElementById('consoleLogs');
+        consoleBox.innerHTML = state.logs.map(log => {
+          let color = "text-slate-300";
+          if (log.level === 'success') color = "text-emerald-400";
+          if (log.level === 'error') color = "text-rose-400";
+          if (log.level === 'warning') color = "text-amber-400";
+          return `<div><span class="text-slate-600">[${log.time}]</span> <span class="${color}">${log.text}</span></div>`;
+        }).join('');
+        consoleBox.scrollTop = consoleBox.scrollHeight;
+      }
+    }
+
+    function clearConsole() {
+      document.getElementById('consoleLogs').innerHTML = '<div class="text-slate-500">Console cleared.</div>';
+    }
+
+    function downloadResults() {
+      window.open('/api/results/download', '_blank');
+    }
+  </script>
+</body>
+</html>
